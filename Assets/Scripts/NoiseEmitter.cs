@@ -4,14 +4,12 @@ using UnityEngine;
 public class NoiseEmitter : MonoBehaviour
 {
     [Header("Sensitivity Settings")]
-    public float silentThreshold = 0.001f;
+    public float silentThreshold = 0.001f; // Set this to 0.001 in Inspector
     public float maxImpactVelocity = 3.5f;
     public float globalVolumeBoost = 5f;
 
     [Header("Aesthetic Settings")]
-    // This is the "very light sound" that plays for even the tiniest nudge
-    public float baselineVolume = 0.001f;
-    // How much the impact "adds" to the base volume
+    public float baselineVolume = 0.01f;
     public float impactWeight = 1.2f;
 
     [Header("Audio Assets")]
@@ -34,27 +32,21 @@ public class NoiseEmitter : MonoBehaviour
         if (Time.time < lastNoiseTime + cooldown)
             return;
 
+        // Catch almost everything
         if (impact < silentThreshold)
             return;
 
-        // 1. Start with the "Very Light" default sound
-        float finalVolume = baselineVolume;
-
-        // 2. Add impact-based volume on top
+        // 1. Calculate Volume
         float normalizedImpact = Mathf.Clamp01(impact / maxImpactVelocity);
-
-        // We use a Power of 3 to make the "loud" sounds only happen on big drops
         float impactVolume = Mathf.Pow(normalizedImpact, 3f) * impactWeight;
+        float finalVolume = (baselineVolume + impactVolume) * globalVolumeBoost;
 
-        // 3. Combine them and apply the boost
-        finalVolume = (finalVolume + impactVolume) * globalVolumeBoost;
-
-        // Final clamp so it doesn't get distorted
+        // 2. GUARANTEE MINIMUM SOUND (Audio Floor)
         finalVolume = Mathf.Clamp(finalVolume, 0.05f, 1.2f);
 
-        // DISTURBANCE LOGIC:
-        // Small baseline nudges (0.05) will barely move the bar (adds ~1.5 points)
-        float noiseAmount = finalVolume * 30f;
+        // 3. GUARANTEE MINIMUM METER IMPACT (Meter Floor)
+        // Even at 0 impact, it adds +2 points to the meter
+        float noiseAmount = (finalVolume * 30f) + 2f;
 
         audioSource.pitch = Random.Range(0.85f, 1.15f);
         audioSource.PlayOneShot(impactClip, finalVolume);
