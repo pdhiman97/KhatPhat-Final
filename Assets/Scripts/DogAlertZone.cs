@@ -8,6 +8,13 @@ public class DogAlertZone : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
+            // IMPACT NOISE METER:
+            // Adds 50 points to the DisturbanceManager
+            if (DisturbanceManager.Instance != null)
+            {
+                DisturbanceManager.Instance.AddNoise(50f);
+            }
+
             dog.EnterLargeZone();
         }
     }
