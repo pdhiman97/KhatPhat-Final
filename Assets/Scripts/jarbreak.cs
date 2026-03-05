@@ -9,6 +9,13 @@ public class JarBreak : MonoBehaviour
     {
         AudioSource.PlayClipAtPoint(breakSound, transform.position);
 
+        // IMPACT NOISE METER:
+        // Adds 75 points to instantly hit the 75% threshold
+        if (DisturbanceManager.Instance != null)
+        {
+            DisturbanceManager.Instance.AddNoise(75f);
+        }
+
         crackedJar.SetActive(true);
 
         Rigidbody[] bodies = crackedJar.GetComponentsInChildren<Rigidbody>();
