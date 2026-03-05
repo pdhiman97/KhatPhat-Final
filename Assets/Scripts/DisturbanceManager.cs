@@ -1,27 +1,31 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement; // Required if you want to restart the level
+using UnityEngine.SceneManagement;
 
 public class DisturbanceManager : MonoBehaviour
 {
     public static DisturbanceManager Instance;
 
     [Header("UI Reference")]
-    public Slider noiseBar; // Drag your 'NoiseMeterBar' here in Inspector
+    public Slider noiseBar;
 
     [Header("Logic Settings")]
     public float currentNoise = 0f;
     public float maxNoise = 100f;
-    public float decayRate = 2f; // How fast the bar empties over time
+    public float decayRate = 2f;
+
+    [Header("Audio Settings")]
+    public AudioSource ambientSource; // Drag your background/cricket sound here
+    public AudioSource taujiVoice;
+    public AudioClip clip35, clip70, clip100;
 
     [Header("Uncle State Flags")]
-    private bool hasCoughed = false;
-    private bool hasMumbled = false;
+    private bool has35 = false;
+    private bool has70 = false;
     private bool isGameOver = false;
 
     void Awake()
     {
-        // Singleton pattern to allow NoiseEmitters to find this script
         if (Instance == null) Instance = this;
     }
 
@@ -29,7 +33,6 @@ public class DisturbanceManager : MonoBehaviour
     {
         if (isGameOver) return;
 
-        // Naturally decay noise over time
         if (currentNoise > 0)
         {
             currentNoise -= decayRate * Time.deltaTime;
@@ -60,47 +63,62 @@ public class DisturbanceManager : MonoBehaviour
     {
         float percent = (currentNoise / maxNoise) * 100f;
 
-        // 100%: Wake Up / Game Over
         if (percent >= 100f)
         {
+            if (!isGameOver)
+            {
+                StopAmbientAndPlayGameOver();
+            }
             TriggerWakeUp();
         }
-        // 75%: Gibberish / Mumbling
-        else if (percent >= 75f && !hasMumbled)
+        else if (percent >= 70f && !has70)
         {
-            Debug.Log("Uncle: 'Kaun hai re?' (Gibberish)");
-            // Add Hindi Audio Clip play here later
-            hasMumbled = true;
+            PlayVoice(clip70);
+            has70 = true;
+            has35 = true;
         }
-        // 50%: Coughing / Shifting
-        else if (percent >= 50f && !hasCoughed)
+        else if (percent >= 35f && !has35)
         {
-            Debug.Log("Uncle: *Coughs and shifts on charpai*");
-            hasCoughed = true;
+            PlayVoice(clip35);
+            has35 = true;
         }
 
-        // Reset flags if noise drops back down significantly
-        if (percent < 40f) hasCoughed = false;
-        if (percent < 65f) hasMumbled = false;
+        if (percent < 25f) has35 = false;
+        if (percent < 60f) has70 = false;
+    }
+
+    void PlayVoice(AudioClip clip)
+    {
+        if (taujiVoice != null && clip != null)
+        {
+            taujiVoice.Stop();
+            taujiVoice.clip = clip;
+            taujiVoice.Play();
+        }
+    }
+
+    void StopAmbientAndPlayGameOver()
+    {
+        // Stop the background yard sounds
+        if (ambientSource != null && ambientSource.isPlaying)
+        {
+            ambientSource.Stop();
+        }
+
+        // Play the "Caught" Game Over audio
+        PlayVoice(clip100);
     }
 
     void TriggerWakeUp()
     {
         isGameOver = true;
-        Debug.Log("UNCLE IS AWAKE! YOU GOT CAUGHT.");
-
-        // Visual feedback: Change the bar color to solid Red
         if (noiseBar != null)
         {
             Image fillImage = noiseBar.fillRect.GetComponent<Image>();
             if (fillImage != null) fillImage.color = Color.red;
         }
-
-        // Optional: Freeze the game so you know it's over
-        // Time.timeScale = 0f; 
     }
 
-    // Call this from a UI button to restart
     public void RestartGame()
     {
         Time.timeScale = 1f;
