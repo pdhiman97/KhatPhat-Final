@@ -11,7 +11,7 @@ public class DisturbanceManager : MonoBehaviour
 
     [Header("Logic Settings")]
     public float currentNoise = 0f;
-    public float maxNoise = 100f;
+    public float maxNoise = 180f;
     public float decayRate = 2f;
 
     [Header("Audio Settings")]

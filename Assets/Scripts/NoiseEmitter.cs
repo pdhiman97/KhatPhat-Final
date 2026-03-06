@@ -3,19 +3,17 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class NoiseEmitter : MonoBehaviour
 {
-    [Header("Sensitivity Settings")]
-    public float silentThreshold = 0.001f;
+    [Header("Audio (The Sound You Hear)")]
     public float maxImpactVelocity = 3.5f;
     public float globalVolumeBoost = 5f;
-
-    [Header("Aesthetic Settings")]
-    // This is the "very light sound" that plays for even the tiniest nudge
     public float baselineVolume = 0.001f;
-    // How much the impact "adds" to the base volume
     public float impactWeight = 1.2f;
-
-    [Header("Audio Assets")]
     public AudioClip impactClip;
+
+    [Header("Noise Meter (The Bar Scaling)")]
+    [Range(0.1f, 1.0f)]
+    public float noiseMeterSensitivity = 0.3f; // Lower = Less sensitive bar
+    public float maxNoisePerImpact = 15f;      // Caps how much one drop can add
 
     private AudioSource audioSource;
     private float cooldown = 0.05f;
@@ -31,33 +29,25 @@ public class NoiseEmitter : MonoBehaviour
     {
         float impact = collision.relativeVelocity.magnitude;
 
-        if (Time.time < lastNoiseTime + cooldown)
+        if (Time.time < lastNoiseTime + cooldown || impact < 0.001f)
             return;
 
-        if (impact < silentThreshold)
-            return;
-
-        // 1. Start with the "Very Light" default sound
-        float finalVolume = baselineVolume;
-
-        // 2. Add impact-based volume on top
+        // --- PART 1: AUDIO CALCULATION (Keep this for the sound) ---
         float normalizedImpact = Mathf.Clamp01(impact / maxImpactVelocity);
-
-        // We use a Power of 3 to make the "loud" sounds only happen on big drops
         float impactVolume = Mathf.Pow(normalizedImpact, 3f) * impactWeight;
-
-        // 3. Combine them and apply the boost
-        finalVolume = (finalVolume + impactVolume) * globalVolumeBoost;
-
-        // Final clamp so it doesn't get distorted
+        float finalVolume = (baselineVolume + impactVolume) * globalVolumeBoost;
         finalVolume = Mathf.Clamp(finalVolume, 0.05f, 1.2f);
 
-        // DISTURBANCE LOGIC:
-        // Small baseline nudges (0.05) will barely move the bar (adds ~1.5 points)
-        float noiseAmount = finalVolume * 30f;
-
+        // Play the sound at the original volume
         audioSource.pitch = Random.Range(0.85f, 1.15f);
         audioSource.PlayOneShot(impactClip, finalVolume);
+
+        // --- PART 2: METER CALCULATION (Separate Logic) ---
+        // We use the raw impact but multiply it by your new sensitivity
+        float noiseAmount = impact * 10f * noiseMeterSensitivity;
+
+        // Safety cap: No single impact can fill too much of the bar at once
+        noiseAmount = Mathf.Clamp(noiseAmount, 0f, maxNoisePerImpact);
 
         if (DisturbanceManager.Instance != null)
         {
