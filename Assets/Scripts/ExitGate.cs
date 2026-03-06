@@ -1,56 +1,69 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Collider))]
 public class ExitGate : MonoBehaviour
 {
-    [Header("Audio Settings")]
+    [Header("Win Audio (The Speaker on the Gate)")]
     public AudioSource winSource;
     public AudioClip winClip;
 
+    [Header("Ambient Audio (The Empty Object)")]
+    public AudioSource ambientObjectSource;
+
+    [Header("UI")]
+    public GameObject winButton;   // Button that appears after winning
+
+    private bool hasWon = false;
+    private Collider gateCollider;
+
+    void Awake()
+    {
+        gateCollider = GetComponent<Collider>();
+
+        if (gateCollider != null)
+        {
+            gateCollider.enabled = true;
+            gateCollider.isTrigger = true;
+        }
+
+        // Make sure button starts hidden
+        if (winButton != null)
+        {
+            winButton.SetActive(false);
+        }
+    }
+
     private void OnTriggerEnter(Collider other)
     {
-        // 1. Check if the player has entered the gate
-        if (other.CompareTag("Player"))
+        if (other.CompareTag("Ball") && !hasWon)
         {
-            // 2. Check if the player is holding the ball
-            // This assumes your ball has the tag "Ball" 
-            // and is a child of the player's hand or within the trigger
-            if (IsHoldingBall())
-            {
-                PlayWinCondition();
-            }
-            else
-            {
-                Debug.Log("You reached the gate, but you forgot the ball!");
-            }
+            HandleWin();
         }
     }
 
-    bool IsHoldingBall()
+    void HandleWin()
     {
-        // Simplest way: Check if any object with the tag "Ball" 
-        // is currently a child of the Player (being held)
-        GameObject ball = GameObject.FindGameObjectWithTag("Ball");
-        if (ball != null)
-        {
-            // If you are using XRI, checking if it has a parent works well
-            return ball.transform.parent != null;
-        }
-        return false;
-    }
+        hasWon = true;
 
-    void PlayWinCondition()
-    {
+        Debug.Log("GOAL! You escaped with the ball!");
+
+        // Stop ambient audio
+        if (ambientObjectSource != null && ambientObjectSource.isPlaying)
+        {
+            ambientObjectSource.Stop();
+        }
+
+        // Play win audio
         if (winSource != null && winClip != null)
         {
             winSource.clip = winClip;
             winSource.Play();
-            Debug.Log("WINNER! You escaped with the ball.");
+        }
 
-            // Optional: Stop the ambient noise like you did for the Game Over
-            if (DisturbanceManager.Instance != null)
-            {
-                DisturbanceManager.Instance.ambientSource.Stop();
-            }
+        // Show win button
+        if (winButton != null)
+        {
+            winButton.SetActive(true);
         }
     }
 }
